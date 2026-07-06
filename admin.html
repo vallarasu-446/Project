@@ -103,6 +103,9 @@
 </div>
 
 <script>
+    // Sathya, unga Google Web App URL link-ai inga connect panniyachu!
+    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfcybyU3YB075YgNNk_MtE2X2vUU3yQhECznhuWFsVipLklXtkm11HWpdzjJH2iu6CArzz/exec";
+
     function renderDashboard() {
         const orders = JSON.parse(localStorage.getItem('ironOrders')) || [];
         const reviews = JSON.parse(localStorage.getItem('shopReviews')) || [];
@@ -194,6 +197,15 @@
         let orders = JSON.parse(localStorage.getItem('ironOrders'));
         orders = orders.map(o => o.id === id ? {...o, status: 'Delivered & Paid ✅'} : o);
         localStorage.setItem('ironOrders', JSON.stringify(orders));
+        
+        // Google Sheet-ukum update panna trigger
+        if(BACKEND_API_URL) {
+            fetch(BACKEND_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "markDelivered", id: id })
+            }).catch(err => console.log("Sheet Sync Error:", err));
+        }
+
         renderDashboard();
     }
 
