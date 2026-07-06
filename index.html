@@ -2,92 +2,292 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Priyanka Dry Cleaners</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priyanka Dry Cleaners - Customer Booking</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        .btn-submit { width: 100%; background: #2ecc71; color: white; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; }
-        .track-section { margin-top: 30px; padding: 20px; border-top: 2px solid #eee; }
-        #qrCode { display: none; text-align: center; margin: 10px 0; }
-        .result-box { display: none; padding: 15px; background: #e8f8f5; border: 1px solid #2ecc71; margin-top: 10px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 25px; }
+        h1, h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1rem; }
+        
+        .clothes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; margin-bottom: 15px; }
+        
+        .time-row { display: flex; gap: 10px; }
+        .time-row .form-group { flex: 1; }
+
+        .fast-delivery-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 12px; border-radius: 5px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .fast-delivery-box input[type="checkbox"] { width: auto; transform: scale(1.3); cursor: pointer; }
+
+        .location-box { background: #ebf5fb; border: 1px solid #a9ccee; padding: 12px; border-radius: 5px; margin-bottom: 15px; text-align: center; }
+        .loc-status { font-size: 0.9rem; font-weight: bold; color: #2980b9; margin-top: 5px; }
+
+        .payment-box { background: #e8f8f5; border: 1px solid #a3e4d7; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .scanner-display { display: none; background: #f9f9f9; border: 2px dashed #2ecc71; padding: 15px; border-radius: 5px; text-align: center; margin-top: 10px; }
+        .scanner-display img { max-width: 180px; margin-top: 10px; border: 1px solid #eee; padding: 5px; background: white; border-radius: 8px; }
+
+        .total-box { background: #e8f4fd; padding: 15px; text-align: center; font-size: 1.4rem; font-weight: bold; color: #1b4f72; margin: 15px 0; border-radius: 5px; border-left: 5px solid #3498db; }
+        button { width: 100%; background: #2ecc71; color: white; border: none; padding: 14px; font-size: 1.2rem; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #27ae60; }
+
+        /* Comment System Styling */
+        .star-rating { display: flex; direction: row-reverse; justify-content: flex-end; gap: 5px; margin-bottom: 10px; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 1.8rem; color: #ccc; cursor: pointer; }
+        .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #f1c40f; }
+        .btn-review { background: #34495e; color: white; padding: 10px; font-size: 1rem; margin-top: 10px; }
+        .comments-list { margin-top: 20px; max-height: 200px; overflow-y: auto; }
+        .comment-box { background: #f8f9fa; border-left: 4px solid #2ecc71; padding: 12px; margin-bottom: 10px; border-radius: 0 5px 5px 0; }
+
+        /* Order History Ledger Style */
+        .history-box { background: #fffdf9; border-left: 5px solid #f39c12; padding: 15px; margin-bottom: 12px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .badge-status { display: inline-block; padding: 3px 8px; font-size: 0.8rem; font-weight: bold; border-radius: 3px; color: white; }
+        .status-pending { background-color: #f39c12; }
+        .status-delivered { background-color: #2ecc71; }
+        .status-cancelled { background-color: #e74c3c; }
+
+        /* Dynamic Cancel Button CSS */
+        .btn-cancel-order { background: #e74c3c; color: white; border: none; padding: 5px 10px; font-size: 0.8rem; font-weight: bold; border-radius: 3px; cursor: pointer; float: right; margin-top: -2px; }
+        .btn-cancel-order:hover { background: #c0392b; }
+
+        /* Success Message Dialog */
+        .success-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .popup-content { background: white; padding: 30px; border-radius: 15px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .success-checkmark { width: 80px; height: 80px; margin: 0 auto 20px; border: 4px solid #4CAF50; border-radius: 50%; position: relative; }
+        .success-checkmark::after { content: ''; position: absolute; left: 28px; top: 14px; width: 18px; height: 38px; border: solid #4CAF50; border-width: 0 5px 5px 0; transform: rotate(45deg); }
+        .popup-btn { background: #2874f0; color: white; border: none; padding: 10px 25px; font-size: 1rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>👔 Priyanka Dry Cleaners</h1>
+    <h1>👕 Priyanka Dry Cleaners</h1>
+    <h2>📅 Book Your Order</h2>
     
-    <form id="orderForm" onsubmit="submitOrder(event)">
-        <input type="text" id="name" placeholder="Name" required>
-        <input type="tel" id="phone" placeholder="Mobile Number" maxlength="10" required>
-        <textarea id="clothes" placeholder="Clothes Details (e.g., 2 Shirts, 1 Pant)" required></textarea>
+    <form id="orderForm">
+        <div class="form-group">
+            <label>Customer Name:</label>
+            <input type="text" id="custName" required placeholder="Enter your full name">
+        </div>
+        <div class="form-group">
+            <label>Mobile Number:</label>
+            <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="loadUserHistory()">
+        </div>
         
-        <label><input type="checkbox" id="express" onchange="calcTotal()"> Fast Delivery (+₹50)</label>
-        
-        <label>Payment Method:</label>
-        <select id="payment" onchange="showQR()">
-            <option value="COD">COD</option>
-            <option value="GPAY">GPAY</option>
-        </select>
-        
-        <div id="qrCode">
-            <p>Scan to Pay:</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=paytmmp://upi/pay?pa=priyanka@oksbi" width="150">
+        <div class="location-box">
+            <label>📍 Live Delivery Location:</label>
+            <div id="locationStatus" class="loc-status">⌛ Fetching your location automatically...</div>
+            <input type="hidden" id="geoLink" value="">
         </div>
 
-        <h3 id="totalDisplay">Total: ₹0</h3>
-        <button type="submit" class="btn-submit">Submit Order</button>
+        <div class="time-row">
+            <div class="form-group"> <label>📅 Pick-up Date:</label> <input type="date" id="pickupDate" required> </div>
+            <div class="form-group"> <label>⏰ Pick-up Time:</label> <input type="time" id="pickupTime" required> </div>
+        </div>
+
+        <div class="time-row">
+            <div class="form-group"> <label>📦 Delivery Date:</label> <input type="date" id="deliveryDate" required> </div>
+            <div class="form-group"> <label>⏰ Delivery Time:</label> <input type="time" id="deliveryTime" required> </div>
+        </div>
+
+        <h3 style="color: #2c3e50; margin-top: 20px;">👔 Clothes Count:</h3>
+        <div class="clothes-grid">
+            <div class="form-group"> <label>Shirt (₹15):</label> <input type="number" id="rateShirt" value="0" min="0"> </div>
+            <div class="form-group"> <label>Pants (₹15):</label> <input type="number" id="ratePants" value="0" min="0"> </div>
+            <div class="form-group"> <label>Cotton Saree (₹50):</label> <input type="number" id="rateCottonSaree" value="0" min="0"> </div>
+            <div class="form-group"> <label>Silk Saree (₹100):</label> <input type="number" id="rateSilkSaree" value="0" min="0"> </div>
+            <div class="form-group"> <label>Churidar Set (₹30):</label> <input type="number" id="rateChuridar" value="0" min="0"> </div>
+            <div class="form-group"> <label>Dhoti & Shirt Set (₹30):</label> <input type="number" id="rateDhotiShirt" value="0" min="0"> </div>
+            <div class="form-group"> <label>Silk Dhoti (₹50):</label> <input type="number" id="rateSilkDhoti" value="0" min="0"> </div>
+            <div class="form-group"> <label>Silk Shirt (₹50):</label> <input type="number" id="rateSilkShirt" value="0" min="0"> </div>
+        </div>
+
+        <div class="fast-delivery-box">
+            <input type="checkbox" id="fastDelivery">
+            <label for="fastDelivery">🚀 <b>Opt for Fast Delivery (+₹50 Extra Charges)</b></label>
+        </div>
+
+        <div class="payment-box">
+            <label>💳 Select Payment Method:</label>
+            <select id="paymentMethod" required onchange="toggleScanner()">
+                <option value="COD">Cash on Delivery (COD) 💵</option>
+                <option value="GPay">Google Pay / PhonePe (Online) 📱</option>
+            </select>
+            <div id="scannerBlock" class="scanner-display">
+                <p style="color: #27ae60; font-weight: bold; margin: 0;">Scan & Pay via Google Pay / PhonePe 📱</p>
+                <img src="Priyankadryclearner_qr.jpg" alt="UPI QR Scanner">
+            </div>
+        </div>
+
+        <div class="total-box">Total Estimated Amount: <span id="totalAmount">₹0</span></div>
+        <button type="submit">Confirm & Submit Order</button>
     </form>
+</div>
 
-    <!-- Tracking Section -->
-    <div class="track-section">
-        <h3>🔍 Track Order & View Reply</h3>
-        <input type="text" id="trackPhone" placeholder="Enter mobile number...">
-        <button onclick="trackOrder()" style="width:100%; padding:10px;">Track</button>
-        
-        <div id="resultBox" class="result-box">
-            <p>Status: <b id="lblStatus"></b></p>
-            <p>Admin Reply: <i id="lblReply"></i></p>
-        </div>
+<div class="container">
+    <h2>📋 Your Recent Order History</h2>
+    <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number above to view tracking history automatically</p>
+    <div id="userHistoryContainer" style="margin-top: 15px;">
+        <p style="color:#aaa; text-align:center;">Please enter your mobile number to view active logs.</p>
     </div>
 </div>
 
+<div class="container">
+    <h2>💬 Customer Experience & Reviews</h2>
+    <form id="reviewForm">
+        <div class="form-group"> <label>Your Name:</label> <input type="text" id="revName" required placeholder="Enter your name"> </div>
+        <label>Rate Our Service:</label>
+        <div class="star-rating">
+            <input type="radio" id="star5" name="rating" value="5" required><label for="star5">★</label>
+            <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+            <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+            <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+            <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
+        </div>
+        <div class="form-group"> <label>Share Your Experience:</label> <textarea id="revComment" rows="3" required placeholder="Write your review here..."></textarea> </div>
+        <button type="submit" class="btn-review">Submit Review</button>
+    </form>
+    <div class="comments-list" id="commentsList"></div>
+</div>
+
+<div id="successPopup" class="success-popup">
+    <div class="popup-content"><div class="success-checkmark"></div><h2>Order Confirmed!</h2><button class="popup-btn" onclick="closePopup()">Awesome</button></div>
+</div>
+
 <script>
-    const BACKEND_API_URL = "YOUR_NEW_WEB_APP_URL"; // PASTE URL HERE
+    // 🔗 PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL LINK HERE
+    const BACKEND_API_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
 
-    function calcTotal() {
-        let total = 200; // base price
-        if(document.getElementById('express').checked) total += 50;
-        document.getElementById('totalDisplay').innerText = "Total: ₹" + total;
+    const inputs = {
+        shirt: document.getElementById('rateShirt'), pants: document.getElementById('ratePants'),
+        cottonSaree: document.getElementById('rateCottonSaree'), silkSaree: document.getElementById('rateSilkSaree'),
+        churidar: document.getElementById('rateChuridar'), dhotiShirt: document.getElementById('rateDhotiShirt'),
+        silkDhoti: document.getElementById('rateSilkDhoti'), silkShirt: document.getElementById('rateSilkShirt'),
+        fastDelivery: document.getElementById('fastDelivery')
+    };
+
+    function toggleScanner() { document.getElementById("scannerBlock").style.display = document.getElementById("paymentMethod").value === "GPay" ? "block" : "none"; }
+
+    function getLocation() {
+        if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById("geoLink").value = `http://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+            document.getElementById("locationStatus").innerText = "✅ Live Location Tracked!";
+            document.getElementById("locationStatus").style.color = "#27ae60";
+        }); }
     }
 
-    function showQR() {
-        document.getElementById('qrCode').style.display = 
-            (document.getElementById('payment').value === 'GPAY') ? 'block' : 'none';
+    async function loadUserHistory() {
+        const phoneInput = document.getElementById('custPhone').value.trim();
+        const historyContainer = document.getElementById('userHistoryContainer');
+        
+        if (phoneInput.length < 10) {
+            historyContainer.innerHTML = '<p style="color:#aaa; text-align:center;">Please enter a valid 10-digit mobile number.</p>';
+            return;
+        }
+
+        let allOrders = [];
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+        } else {
+            try {
+                let res = await fetch(BACKEND_API_URL);
+                let cloudData = await res.json();
+                allOrders = cloudData.orders || [];
+            } catch(e) { allOrders = JSON.parse(localStorage.getItem('ironOrders')) || []; }
+        }
+
+        const userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
+
+        if (userOrders.length === 0) {
+            historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
+            return;
+        }
+
+        historyContainer.innerHTML = userOrders.reverse().map(o => {
+            const isPending = o.status.toLowerCase().includes('pending');
+            const isCancelled = o.status.toLowerCase().includes('cancel');
+            let badgeClass = 'status-delivered';
+            if(isPending) badgeClass = 'status-pending';
+            if(isCancelled) badgeClass = 'status-cancelled';
+
+            return `
+                <div class="history-box" id="card-${o.id}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <strong>💰 Bill: ₹${o.total}</strong>
+                        <div>
+                            <span class="badge-status ${badgeClass}">${o.status}</span>
+                            ${isPending ? `<button class="btn-cancel-order" onclick="cancelCustomerOrder('${o.id}')">❌ Cancel</button>` : ''}
+                        </div>
+                    </div>
+                    <div style="font-size:0.9rem; color:#555;">
+                        <span>📦 <b>Pick:</b> ${o.pickup}</span><br>
+                        <span style="font-size:0.8rem; color:#7f8c8d;">👔 ${o.clothesDetails}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
-    function submitOrder(e) {
-        e.preventDefault();
-        alert("Order Submitted!");
-        // Add fetch logic to save to Google Sheet...
-    }
+    async function cancelCustomerOrder(orderId) {
+        if (!confirm("Do you want to cancel this order?")) return;
+        document.getElementById(`card-${orderId}`).style.opacity = '0.4';
 
-    function trackOrder() {
-        const phone = document.getElementById('trackPhone').value;
-        fetch(`${BACKEND_API_URL}?action=track&phone=${phone}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                document.getElementById('resultBox').style.display = 'block';
-                document.getElementById('lblStatus').innerText = data.order.status;
-                document.getElementById('lblReply').innerText = data.order.reply;
-            } else {
-                alert("No Order Found!");
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+            localOrders = localOrders.map(o => o.id.toString() === orderId.toString() ? {...o, status: 'Cancelled ❌'} : o);
+            localStorage.setItem('ironOrders', JSON.stringify(localOrders));
+            loadUserHistory();
+            return;
+        }
+
+        try {
+            let res = await fetch(BACKEND_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "CANCEL_ORDER", sheetTarget: "Orders", id: orderId })
+            });
+            let data = await res.json();
+            if(data.result === "cancelled" || data.result === "success") {
+                alert("👍 Your order has been cancelled successfully!");
+                loadUserHistory();
             }
-        });
+        } catch(e) { alert("Network sync failed!"); }
     }
+
+    function calculateTotal() {
+        let total = (parseInt(inputs.shirt.value)||0)*15 + (parseInt(inputs.pants.value)||0)*15 + (parseInt(inputs.cottonSaree.value)||0)*50 + (parseInt(inputs.silkSaree.value)||0)*100 + (parseInt(inputs.churidar.value)||0)*30 + (parseInt(inputs.dhotiShirt.value)||0)*30 + (parseInt(inputs.silkDhoti.value)||0)*50 + (parseInt(inputs.silkShirt.value)||0)*50;
+        if (inputs.fastDelivery.checked) total += 50;
+        document.getElementById('totalAmount').innerText = '₹' + total;
+        return total;
+    }
+
+    Object.values(inputs).forEach(i => i.addEventListener(i.type==='checkbox'?'change':'input', calculateTotal));
+
+    document.getElementById('orderForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const order = {
+            id: Date.now(), name: document.getElementById('custName').value, phone: document.getElementById('custPhone').value,
+            location: document.getElementById("geoLink").value || "Not Provided",
+            pickup: document.getElementById('pickupDate').value + " (" + document.getElementById('pickupTime').value + ")",
+            delivery: document.getElementById('deliveryDate').value + " (" + document.getElementById('deliveryTime').value + ")",
+            clothesDetails: `Shirts(${inputs.shirt.value}), Pants(${inputs.pants.value}), CottonSaree(${inputs.cottonSaree.value})`, fastDelivery: inputs.fastDelivery.checked ? "Yes 🚀" : "No 🐢",
+            total: calculateTotal(), payment: document.getElementById('paymentMethod').value, status: 'Pending 🧺', sheetTarget: "Orders"
+        };
+
+        let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+        localOrders.push(order);
+        localStorage.setItem('ironOrders', JSON.stringify(localOrders));
+
+        if(!BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            try { await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); } catch(err){}
+        }
+
+        document.getElementById('successPopup').style.display = 'flex';
+        this.reset(); calculateTotal(); loadUserHistory();
+    });
+
+    window.onload = function() { getLocation(); toggleScanner(); };
+    function closePopup() { document.getElementById('successPopup').style.display = 'none'; }
 </script>
 </body>
 </html>
