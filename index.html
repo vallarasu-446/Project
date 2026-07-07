@@ -51,9 +51,6 @@
         .btn-cancel-order { background: #e74c3c; color: white; border: none; padding: 5px 10px; font-size: 0.8rem; font-weight: bold; border-radius: 3px; cursor: pointer; float: right; margin-top: -2px; }
         .btn-cancel-order:hover { background: #c0392b; }
 
-        /* Admin Reply Box Styling inside Ledger */
-        .admin-reply-box { margin-top: 10px; padding: 8px 12px; background: #eef2f7; border-left: 4px solid #3498db; border-radius: 3px; font-style: italic; color: #34495e; font-size: 0.9rem; }
-
         /* Success Message Dialog */
         .success-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); justify-content: center; align-items: center; z-index: 1000; }
         .popup-content { background: white; padding: 30px; border-radius: 15px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -73,9 +70,10 @@
             <label>Customer Name:</label>
             <input type="text" id="custName" required placeholder="Enter your full name">
         </div>
+        <!-- 1st INPUT BOX: Booking Form Box -->
         <div class="form-group">
             <label>Mobile Number:</label>
-            <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="loadUserHistory()">
+            <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="syncPhoneInputs('booking')">
         </div>
         
         <div class="location-box">
@@ -130,7 +128,14 @@
 
 <div class="container">
     <h2>📋 Your Recent Order History</h2>
-    <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number above to view tracking history automatically</p>
+    <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number below to view tracking history automatically</p>
+    
+    <!-- 2nd INPUT BOX: History Track Section Box -->
+    <div class="form-group" style="margin-top: 15px;">
+        <label style="color: #2980b9;">Track Status via Mobile Number:</label>
+        <input type="tel" id="trackCustPhone" placeholder="Enter 10-digit mobile number to track" oninput="syncPhoneInputs('tracking')">
+    </div>
+
     <div id="userHistoryContainer" style="margin-top: 15px;">
         <p style="color:#aaa; text-align:center;">Please enter your mobile number to view active logs.</p>
     </div>
@@ -159,8 +164,8 @@
 </div>
 
 <script>
-    // 🔗 SATHYA - Unga pudhu Web App URL-ai inga matum paste pannunga:
-    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbyZ3gmeR4YxM0tozEbioMRZszr3dFsIk4ldXlIFFibIr0QO_aQQg7G2d0P0DUkE5GN3IA/exec";
+    // 🔗 SATHYA - Deployed Apps Script Web App URL-ai Line 151-la paste pannanum:
+    const BACKEND_API_URL = "YOUR_DEPLOYED_WEB_APP_URL_HERE";
 
     const inputs = {
         shirt: document.getElementById('rateShirt'), pants: document.getElementById('ratePants'),
@@ -180,53 +185,53 @@
         }); }
     }
 
-    async function loadUserHistory() {
-        const phoneInput = document.getElementById('custPhone').value.trim();
+    // Smart Sync Box Function
+    function syncPhoneInputs(source) {
+        const pForm = document.getElementById('custPhone');
+        const pTrack = document.getElementById('trackCustPhone');
+        let activeNumber = "";
+        
+        if (source === 'booking') {
+            pTrack.value = pForm.value;
+            activeNumber = pForm.value.trim();
+        } else {
+            pForm.value = pTrack.value;
+            activeNumber = pTrack.value.trim();
+        }
+        loadUserHistory(activeNumber);
+    }
+
+    async function loadUserHistory(phoneInput) {
         const historyContainer = document.getElementById('userHistoryContainer');
         
-        if (phoneInput.length < 10) {
+        if (!phoneInput || phoneInput.length < 10) {
             historyContainer.innerHTML = '<p style="color:#aaa; text-align:center;">Please enter a valid 10-digit mobile number.</p>';
             return;
         }
 
         historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">⏳ Fetching active status & updates live...</p>';
 
-        if(BACKEND_API_URL.includes("YOUR_NEW_WEB_APP_URL")) {
-            // Fallback to local cache if URL not provided
-            const allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-            const userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
-            renderHistoryUI(userOrders);
+        let allOrders = [];
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
         } else {
-            // Live Server Tracking with Admin Replies
             try {
-                let res = await fetch(`${BACKEND_API_URL}?action=track&phone=${phoneInput}`);
-                let data = await res.json();
-                if(data && data.success) {
-                    renderHistoryUI([data.order]); // Render order from Google Sheet
-                } else {
-                    historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No active orders found in Google Sheet.</p>';
-                }
-            } catch(e) { 
-                const allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-                const userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
-                renderHistoryUI(userOrders);
-            }
+                let res = await fetch(BACKEND_API_URL);
+                let cloudData = await res.json();
+                allOrders = cloudData.orders || [];
+            } catch(e) { allOrders = JSON.parse(localStorage.getItem('ironOrders')) || []; }
         }
-    }
 
-    function renderHistoryUI(userOrders) {
-        const historyContainer = document.getElementById('userHistoryContainer');
+        const userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
+
         if (userOrders.length === 0) {
             historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
             return;
         }
 
-        historyContainer.innerHTML = userOrders.map(o => {
-            const statusText = o.status || 'Pending 🧺';
-            const isPending = statusText.toLowerCase().includes('pending');
-            const isCancelled = statusText.toLowerCase().includes('cancel');
-            const replyText = o.reply || "No updates from admin yet.";
-            
+        historyContainer.innerHTML = userOrders.reverse().map(o => {
+            const isPending = o.status.toLowerCase().includes('pending');
+            const isCancelled = o.status.toLowerCase().includes('cancel');
             let badgeClass = 'status-delivered';
             if(isPending) badgeClass = 'status-pending';
             if(isCancelled) badgeClass = 'status-cancelled';
@@ -236,16 +241,13 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                         <strong>💰 Bill: ₹${o.total}</strong>
                         <div>
-                            <span class="badge-status ${badgeClass}">${statusText}</span>
+                            <span class="badge-status ${badgeClass}">${o.status}</span>
                             ${isPending ? `<button class="btn-cancel-order" onclick="cancelCustomerOrder('${o.id}')">❌ Cancel</button>` : ''}
                         </div>
                     </div>
                     <div style="font-size:0.9rem; color:#555;">
-                        <span>📦 <b>Pick/Order Info:</b> ${o.pickup || 'Checked Live'}</span><br>
+                        <span>📦 <b>Pick:</b> ${o.pickup}</span><br>
                         <span style="font-size:0.8rem; color:#7f8c8d;">👔 ${o.clothesDetails}</span>
-                    </div>
-                    <div class="admin-reply-box">
-                        <b>Shop Update / Reply:</b> ${replyText}
                     </div>
                 </div>
             `;
@@ -255,12 +257,13 @@
     async function cancelCustomerOrder(orderId) {
         if (!confirm("Do you want to cancel this order?")) return;
         document.getElementById(`card-${orderId}`).style.opacity = '0.4';
+        const activePhone = document.getElementById('trackCustPhone').value.trim();
 
-        if(BACKEND_API_URL.includes("YOUR_NEW_WEB_APP_URL")) {
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
             let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
             localOrders = localOrders.map(o => o.id.toString() === orderId.toString() ? {...o, status: 'Cancelled ❌'} : o);
             localStorage.setItem('ironOrders', JSON.stringify(localOrders));
-            loadUserHistory();
+            loadUserHistory(activePhone);
             return;
         }
 
@@ -272,7 +275,7 @@
             let data = await res.json();
             if(data.result === "cancelled" || data.result === "success") {
                 alert("👍 Your order has been cancelled successfully!");
-                loadUserHistory();
+                loadUserHistory(activePhone);
             }
         } catch(e) { alert("Network sync failed!"); }
     }
@@ -288,39 +291,26 @@
 
     document.getElementById('orderForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const cDetails = `Shirts(${inputs.shirt.value}), Pants(${inputs.pants.value}), CottonSaree(${inputs.cottonSaree.value})`;
+        const activePhone = document.getElementById('custPhone').value.trim();
         const order = {
-            name: document.getElementById('custName').value, 
-            phone: document.getElementById('custPhone').value,
+            id: Date.now(), name: document.getElementById('custName').value, phone: activePhone,
             location: document.getElementById("geoLink").value || "Not Provided",
-            pickupDate: document.getElementById('pickupDate').value + " (" + document.getElementById('pickupTime').value + ")",
-            deliveryDate: document.getElementById('deliveryDate').value + " (" + document.getElementById('deliveryTime').value + ")",
-            clothesDetails: cDetails, 
-            express: inputs.fastDelivery.checked ? "Yes 🚀" : "No 🐢",
-            total: calculateTotal(), 
-            payment: document.getElementById('paymentMethod').value
+            pickup: document.getElementById('pickupDate').value + " (" + document.getElementById('pickupTime').value + ")",
+            delivery: document.getElementById('deliveryDate').value + " (" + document.getElementById('deliveryTime').value + ")",
+            clothesDetails: `Shirts(${inputs.shirt.value}), Pants(${inputs.pants.value}), CottonSaree(${inputs.cottonSaree.value})`, fastDelivery: inputs.fastDelivery.checked ? "Yes 🚀" : "No 🐢",
+            total: calculateTotal(), payment: document.getElementById('paymentMethod').value, status: 'Pending 🧺', sheetTarget: "Orders"
         };
 
-        // Network save attempt
-        if(!BACKEND_API_URL.includes("YOUR_NEW_WEB_APP_URL")) {
-            try { 
-                let response = await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); 
-                let serverRes = await response.json();
-                order.id = serverRes.orderId;
-            } catch(err){ order.id = Date.now(); }
-        } else {
-            order.id = Date.now();
-        }
-
-        order.status = 'Pending 🧺';
-        order.pickup = order.pickupDate;
         let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
         localOrders.push(order);
         localStorage.setItem('ironOrders', JSON.stringify(localOrders));
 
+        if(!BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            try { await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); } catch(err){}
+        }
+
         document.getElementById('successPopup').style.display = 'flex';
-        this.reset(); calculateTotal(); loadUserHistory();
+        this.reset(); calculateTotal(); loadUserHistory(activePhone);
     });
 
     window.onload = function() { getLocation(); toggleScanner(); };
