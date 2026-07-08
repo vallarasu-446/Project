@@ -70,7 +70,6 @@
             <label>Customer Name:</label>
             <input type="text" id="custName" required placeholder="Enter your full name">
         </div>
-        <!-- 1st INPUT BOX: Booking Form Box -->
         <div class="form-group">
             <label>Mobile Number:</label>
             <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="syncPhoneInputs('booking')">
@@ -130,7 +129,6 @@
     <h2>📋 Your Recent Order History</h2>
     <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number below to view tracking history automatically</p>
     
-    <!-- 2nd INPUT BOX: History Track Section Box -->
     <div class="form-group" style="margin-top: 15px;">
         <label style="color: #2980b9;">Track Status via Mobile Number:</label>
         <input type="tel" id="trackCustPhone" placeholder="Enter 10-digit mobile number to track" oninput="syncPhoneInputs('tracking')">
@@ -164,8 +162,8 @@
 </div>
 
 <script>
-    // 🔗 SATHYA - Deployed Apps Script Web App URL-ai Line 151-la paste pannanum:
-    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbyDKw9NuMAs6a1HTbDohwJz_7Bu9HzLiupDycWk0-wpAdn052WoPIqisMPn4wFbGH1n-Q/exec";
+    // 🔗 SATHYA - Deployed Apps Script Web App URL-ai Line 151-la paste pannunum:
+    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbxj7EjKofp0tpS0I4xCg7FMHSVgXYrh4E0lqn9kOfGhLub/";
 
     const inputs = {
         shirt: document.getElementById('rateShirt'), pants: document.getElementById('ratePants'),
@@ -185,7 +183,6 @@
         }); }
     }
 
-    // Smart Sync Box Function
     function syncPhoneInputs(source) {
         const pForm = document.getElementById('custPhone');
         const pTrack = document.getElementById('trackCustPhone');
@@ -209,75 +206,45 @@
             return;
         }
 
-        historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">⏳ Fetching active status & updates live...</p>';
-
-        let allOrders = [];
-        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
-            allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-        } else {
-            try {
-                let res = await fetch(BACKEND_API_URL);
-                let cloudData = await res.json();
-                allOrders = cloudData.orders || [];
-            } catch(e) { allOrders = JSON.parse(localStorage.getItem('ironOrders')) || []; }
-        }
-
-        const userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
-
-        if (userOrders.length === 0) {
-            historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
-            return;
-        }
-
-        historyContainer.innerHTML = userOrders.reverse().map(o => {
-            const isPending = o.status.toLowerCase().includes('pending');
-            const isCancelled = o.status.toLowerCase().includes('cancel');
-            let badgeClass = 'status-delivered';
-            if(isPending) badgeClass = 'status-pending';
-            if(isCancelled) badgeClass = 'status-cancelled';
-
-            return `
-                <div class="history-box" id="card-${o.id}">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <strong>💰 Bill: ₹${o.total}</strong>
-                        <div>
-                            <span class="badge-status ${badgeClass}">${o.status}</span>
-                            ${isPending ? `<button class="btn-cancel-order" onclick="cancelCustomerOrder('${o.id}')">❌ Cancel</button>` : ''}
-                        </div>
-                    </div>
-                    <div style="font-size:0.9rem; color:#555;">
-                        <span>📦 <b>Pick:</b> ${o.pickup}</span><br>
-                        <span style="font-size:0.8rem; color:#7f8c8d;">👔 ${o.clothesDetails}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    async function cancelCustomerOrder(orderId) {
-        if (!confirm("Do you want to cancel this order?")) return;
-        document.getElementById(`card-${orderId}`).style.opacity = '0.4';
-        const activePhone = document.getElementById('trackCustPhone').value.trim();
-
-        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
-            let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-            localOrders = localOrders.map(o => o.id.toString() === orderId.toString() ? {...o, status: 'Cancelled ❌'} : o);
-            localStorage.setItem('ironOrders', JSON.stringify(localOrders));
-            loadUserHistory(activePhone);
-            return;
-        }
+        historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">⏳ Fetching live updates from Google Sheets...</p>';
 
         try {
-            let res = await fetch(BACKEND_API_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "CANCEL_ORDER", sheetTarget: "Orders", id: orderId })
-            });
-            let data = await res.json();
-            if(data.result === "cancelled" || data.result === "success") {
-                alert("👍 Your order has been cancelled successfully!");
-                loadUserHistory(activePhone);
+            // Apps Script web app-ku mobile parameter-oda fetch seigirom
+            let res = await fetch(`${BACKEND_API_URL}?mobile=${phoneInput}`);
+            let userOrders = await res.json();
+
+            if (!userOrders || userOrders.length === 0) {
+                historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
+                return;
             }
-        } catch(e) { alert("Network sync failed!"); }
+
+            historyContainer.innerHTML = userOrders.map(o => {
+                const isPending = o.status.toLowerCase().includes('pending');
+                const isCancelled = o.status.toLowerCase().includes('cancel');
+                let badgeClass = 'status-delivered';
+                if(isPending) badgeClass = 'status-pending';
+                if(isCancelled) badgeClass = 'status-cancelled';
+
+                return `
+                    <div class="history-box" id="card-${o.orderId}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                            <strong>🆔 Order ID: ${o.orderId}</strong>
+                            <div>
+                                <span class="badge-status ${badgeClass}">${o.status}</span>
+                            </div>
+                        </div>
+                        <div style="font-size:0.9rem; color:#555;">
+                            <span>📦 <b>Pick Date:</b> ${o.pickupDate}</span><br>
+                            <span>🚚 <b>Delivery Date:</b> ${o.deliveryDate}</span><br>
+                            <span style="font-size:0.8rem; color:#7f8c8d;">👔 <b>Clothes:</b> ${o.clothesDetails}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch(e) { 
+            historyContainer.innerHTML = '<p style="color:#e74c3c; text-align:center;">⚠️ Connection Sync Error. Check your Web App URL Setup!</p>';
+        }
     }
 
     function calculateTotal() {
@@ -301,13 +268,9 @@
             total: calculateTotal(), payment: document.getElementById('paymentMethod').value, status: 'Pending 🧺', sheetTarget: "Orders"
         };
 
-        let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-        localOrders.push(order);
-        localStorage.setItem('ironOrders', JSON.stringify(localOrders));
-
-        if(!BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
-            try { await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); } catch(err){}
-        }
+        try { 
+            await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); 
+        } catch(err){}
 
         document.getElementById('successPopup').style.display = 'flex';
         this.reset(); calculateTotal(); loadUserHistory(activePhone);
