@@ -72,7 +72,6 @@
         </div>
         <div class="form-group">
             <label>Mobile Number:</label>
-            <!-- கஸ்டமர் மொபைல் நம்பர் டைப் செய்யும் இன்புட் பாக்ஸ் (தேடுவதற்கு பயன்படுகிறது) -->
             <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="loadUserHistory()">
         </div>
         
@@ -130,7 +129,6 @@
     <h2>📋 Your Recent Order History</h2>
     <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number above to view tracking history automatically</p>
     
-    <!-- கூகுள் ஷீட் லைவ் நிலவரம் இங்கே தான் வந்து காட்டும் -->
     <div id="userHistoryContainer" style="margin-top: 15px;">
         <p style="color:#aaa; text-align:center;">Please enter your mobile number to view active logs.</p>
     </div>
@@ -159,8 +157,7 @@
 </div>
 
 <script>
-    // 🔗 உங்களது கூகுள் ஆப்ஸ் ஸ்கிரிப்ட் வெப் ஆப் URL லிங்க்
-    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbwXfwzRhD7sPq8zOvM8d4vSnyJXvhFghmC37B3ceU-PHHv7I1dDwk-RLDFTT7JWZIhMuw/exec";
+    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbwXfwzRhD7sPq8zOvM8d4vSnyJXvhFghmC37B3ceU-PHHv7I1dDwk-RLDFTT7JWZIhMuw/execa";
 
     const inputs = {
         shirt: document.getElementById('rateShirt'), pants: document.getElementById('ratePants'),
@@ -180,7 +177,6 @@
         }); }
     }
 
-    // கஸ்டமர் மொபைல் எண் டைப் செய்யும்போது கூகுள் ஷீட்டில் இருந்து லைவ் நிலவரத்தை எடுக்கும் ஃபங்க்ஷன்
     async function loadUserHistory() {
         const phoneInput = document.getElementById('custPhone').value.trim();
         const historyContainer = document.getElementById('userHistoryContainer');
@@ -194,12 +190,10 @@
 
         let userOrders = [];
         try {
-            // கூகுள் ஷீட்டிற்கு மொபைல் எண்ணை அனுப்பி லைவ் டேட்டாவை கொண்டு வருகிறோம்
             let res = await fetch(`${BACKEND_API_URL}?mobile=${phoneInput}`);
             let cloudData = await res.json();
             userOrders = cloudData.orders || cloudData || [];
         } catch(e) { 
-            // நெட்வொர்க் வேலை செய்யவில்லை என்றால் லோக்கல் மெமரியில் தேடும்
             let allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
             userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
         }
@@ -209,7 +203,6 @@
             return;
         }
 
-        // புதிய ஆர்டர் முதலில் தெரியும்படி தலைகீழாக மாற்றி பாக்ஸில் பிரிண்ட் செய்கிறோம்
         historyContainer.innerHTML = userOrders.reverse().map(o => {
             const orderID = o.orderId || o.id || "N/A";
             const statusText = o.status || 'Pending 🧺';
@@ -221,7 +214,6 @@
             if(isPending) badgeClass = 'status-pending';
             if(isCancelled) badgeClass = 'status-cancelled';
 
-            // கூகுள் ஷீட்டில் நீங்கள் கொடுக்கும் Admin Reply (Column L) இருந்தால் மட்டும் நீல நிற பாக்ஸில் காட்டும்
             const replyHTML = o.adminReply ? `<div style="margin-top:8px; padding:8px; background:#ebf5fb; border-left:3px solid #3498db; font-size:0.85rem; color:#2c3e50; border-radius: 0 4px 4px 0;"><b>💬 Shop Reply:</b> ${o.adminReply}</div>` : '';
 
             return `
@@ -303,6 +295,38 @@
         document.getElementById('successPopup').style.display = 'flex';
         this.reset(); calculateTotal(); 
         setTimeout(loadUserHistory, 1500);
+    });
+
+    // 💬 கஸ்டமர்கள் போடும் ரிவியூவை கூகுள் ஷீட்டுக்கு அனுப்பும் புதிய லைவ் பகுதி
+    document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const reviewData = {
+            sheetTarget: "Reviews",
+            name: document.getElementById('revName').value,
+            rating: document.querySelector('input[name="rating"]:checked').value,
+            comment: document.getElementById('revComment').value
+        };
+
+        // ஸ்கிரீனில் உடனே ரிவியூவை காட்டும் லாஜிக்
+        const commentsList = document.getElementById('commentsList');
+        const newComment = document.createElement('div');
+        newComment.className = 'comment-box';
+        newComment.innerHTML = `<strong>${reviewData.name} (${reviewData.rating} ★)</strong><p>${reviewData.comment}</p>`;
+        commentsList.insertBefore(newComment, commentsList.firstChild);
+
+        // கூகுள் ஷீட்டுக்கு தரவை தள்ளும் பகுதி
+        try { 
+            let response = await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(reviewData) });
+            let result = await response.json();
+            if(result.status === "success") {
+                alert("✅ Review Successfully Saved in Google Sheet!");
+            }
+        } catch(err) {
+            alert("Saved locally, server sync failed.");
+        }
+        
+        this.reset();
     });
 
     window.onload = function() { getLocation(); toggleScanner(); };
