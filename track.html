@@ -1,98 +1,99 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Smart Ironing - Track Order</title>
+    <title>Priyanka Dry Cleaners - Track Order</title>
     <style>
         body { font-family: Arial, sans-serif; background: #f4f7f6; padding: 20px; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { max-width: 500px; width: 100%; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); box-sizing: border-box; }
-        h1 { text-align: center; color: #2c3e50; font-size: 1.8rem; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1rem; }
+        .container { max-width: 500px; width: 100%; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); box-sizing: border-box; }
+        h2 { text-align: center; color: #2c3e50; margin-top: 0; }
+        label { font-weight: bold; font-size: 0.9rem; color: #555; display: block; margin-bottom: 8px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         button { width: 100%; background: #3498db; color: white; border: none; padding: 12px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; font-weight: bold; }
         button:hover { background: #2980b9; }
-        .result-box { margin-top: 20px; padding: 15px; border: 1px solid #2ecc71; background: #e8f8f5; border-radius: 5px; display: none; }
-        .result-box h3 { margin-top: 0; color: #16a085; }
-        .no-order { margin-top: 20px; padding: 15px; border: 1px solid #e74c3c; background: #fdebd0; border-radius: 5px; color: #c0392b; text-align: center; display: none; }
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; background: #e8f8f5; border-left: 5px solid #2ecc71; }
+        .no-order { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; background: #fdf2e9; border-left: 5px solid #e67e22; color: #d35400; text-align: center; font-weight: bold; }
+        .status-badge { display: inline-block; padding: 4px 8px; background: #f39c12; color: white; border-radius: 4px; font-weight: bold; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔍 Track Your Laundry Order</h1>
-    <input type="text" id="phoneInput" placeholder="Enter Registered Mobile Number..." maxlength="10">
+    <h2>🔍 Track Your Laundry Order</h2>
+    <p style="text-align: center; font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px;">உங்கள் மொபைல் எண்ணை உள்ளிட்டு தற்போதைய நிலையை அறியவும்.</p>
+    
+    <label for="phoneInput">Enter Registered Mobile Number:</label>
+    <input type="text" id="phoneInput" placeholder="e.g., 9876543210" maxlength="10">
     <button onclick="trackOrder()">Track Order Status</button>
 
+    <!-- ரிசல்ட் காட்டும் பகுதிகள் -->
     <div id="resultBox" class="result-box">
-        <h3>📦 Order Details Found:</h3>
-        <p><b>Customer Name:</b> <span id="lblName"></span></p>
-        <p><b>Clothes Details:</b> <span id="lblDetails"></span></p>
-        <p><b>Total Bill:</b> ₹<span id="lblTotal"></span></p>
-        <p><b>Order Status:</b> <span id="lblStatus" style="font-weight: bold;"></span></p>
+        <h3 style="margin-top: 0; color: #16a085;">Order Found!</h3>
+        <p><b>Customer Name:</b> <span id="customerName">-</span></p>
+        <p><b>Clothes Details:</b> <span id="clothesDetails">-</span></p>
+        <p><b>Total Bill Amount:</b> <span id="totalAmount">-</span></p>
+        <p><b>Current Status:</b> <span id="orderStatus" class="status-badge">-</span></p>
     </div>
 
     <div id="noOrderBox" class="no-order">
-        ❌ No active order found for this mobile number!
+        ❌ இந்த மொபைல் எண்ணில் எந்த ஆர்டரும் இல்லை! தயவுசெய்து சரியான எண்ணை உள்ளிடவும்.
     </div>
 </div>
 
 <script>
-    // Sathya, unga Google Web App URL link-ai inga connect panniyachu!
-    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfcybyU3YB075YgNNk_MtE2X2vUU3yQhECznhuWFsVipLklXtkm11HWpdzjJH2iu6CArzz/exec";
+    // ⚠️ உங்களுடைய புதிய கூகுள் வெப் ஆப் (Apps Script) URL-ஐ கீழே உள்ள இரட்டை மேற்கோள் குறிக்குள் போடுங்கள்!
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXfwzRhD7sPq8zOvM8d4vSnyJXvhFghmC37B3ceU-PHHv7I1dDwk-RLDFTT7JWZIhMuw/exec"; 
 
-    function trackOrder() {
+    async function trackOrder() {
         const phone = document.getElementById('phoneInput').value.trim();
         const resultBox = document.getElementById('resultBox');
         const noOrderBox = document.getElementById('noOrderBox');
 
-        if(phone.length < 10) {
-            alert("Please enter a valid 10-digit mobile number.");
+        if (!phone || phone.length < 10) {
+            alert("தயவுசெய்து 10 இலக்க மொபைல் எண்ணை சரியாக உள்ளிடவும்!");
             return;
         }
 
-        // First, check local database
-        const localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
-        const foundOrder = localOrders.find(o => o.phone === phone);
+        // பட்டனை லோடிங் நிலைக்கு மாற்றுவது
+        const btn = document.querySelector('button');
+        btn.innerText = "Searching...";
+        btn.disabled = true;
+        resultBox.style.display = 'none';
+        noOrderBox.style.display = 'none';
 
-        if(foundOrder) {
-            showOrderDetails(foundOrder);
-        } else {
-            // If not found locally, fetch live status from Google Sheet
-            if(BACKEND_API_URL) {
-                resultBox.style.display = 'none';
-                noOrderBox.style.display = 'block';
-                noOrderBox.innerText = "⏳ Fetching live status from server...";
+        try {
+            // கூகுள் ஷீட்டில் இருந்து இந்த போன் நம்பருக்கு உண்டான டேட்டாவை எடுக்கும்
+            let response = await fetch(`${GOOGLE_SCRIPT_URL}?action=trackOrder&phone=${phone}`);
+            let data = await response.json();
 
-                fetch(`${BACKEND_API_URL}?action=track&phone=${phone}`)
-                .then(res => res.json())
-                .then(data => {
-                    if(data && data.success) {
-                        showOrderDetails(data.order);
-                    } else {
-                        noOrderBox.innerText = "❌ No active order found for this mobile number!";
-                    }
-                })
-                .catch(err => {
-                    console.error("Tracking error:", err);
-                    noOrderBox.innerText = "❌ Network error. Please try again.";
-                });
+            if (data && data.status !== "not_found") {
+                // விபரங்களை ஸ்கிரீனில் காட்டுவது
+                document.getElementById('customerName').innerText = data.customerName;
+                document.getElementById('clothesDetails').innerText = data.clothesDetails;
+                document.getElementById('totalAmount').innerText = "₹" + data.totalAmount;
+                
+                const statusBadge = document.getElementById('orderStatus');
+                statusBadge.innerText = data.orderStatus;
+                
+                // டெலிவரி ஆகிடுச்சுன்னா பச்சை கலர், இல்லைனா ஆரஞ்சு கலர் பேட்ஜ்
+                if (data.orderStatus.includes('Delivered')) {
+                    statusBadge.style.background = '#2ecc71';
+                } else {
+                    statusBadge.style.background = '#f39c12';
+                }
+
+                resultBox.style.display = 'block';
             } else {
-                resultBox.style.display = 'none';
                 noOrderBox.style.display = 'block';
             }
+        } catch (error) {
+            alert("டேட்டாவை எடுப்பதில் ஏதோ பிழை ஏற்பட்டுள்ளது! மீண்டும் முயற்சிக்கவும்.");
+            console.error(error);
+        } finally {
+            // பட்டனை பழைய நிலைக்கு மாற்றுவது
+            btn.innerText = "Track Order Status";
+            btn.disabled = false;
         }
-    }
-
-    function showOrderDetails(order) {
-        document.getElementById('noOrderBox').style.display = 'none';
-        document.getElementById('resultBox').style.display = 'block';
-        
-        document.getElementById('lblName').innerText = order.name;
-        document.getElementById('lblDetails').innerText = order.clothesDetails || order.details;
-        document.getElementById('lblTotal').innerText = order.total;
-        
-        const statusEl = document.getElementById('lblStatus');
-        statusEl.innerText = order.status;
-        statusEl.style.color = order.status.includes('Delivered') ? '#2ecc71' : '#f39c12';
     }
 </script>
 
