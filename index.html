@@ -37,7 +37,7 @@
         .star-rating label { font-size: 1.8rem; color: #ccc; cursor: pointer; }
         .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #f1c40f; }
         .btn-review { background: #34495e; color: white; padding: 10px; font-size: 1rem; margin-top: 10px; }
-        .comments-list { margin-top: 20px; max-height: 200px; overflow-y: auto; }
+        .comments-list { margin-top: 20px; max-height: 250px; overflow-y: auto; }
         .comment-box { background: #f8f9fa; border-left: 4px solid #2ecc71; padding: 12px; margin-bottom: 10px; border-radius: 0 5px 5px 0; }
 
         /* Order History Ledger Style */
@@ -149,7 +149,9 @@
         <div class="form-group"> <label>Share Your Experience:</label> <textarea id="revComment" rows="3" required placeholder="Write your review here..."></textarea> </div>
         <button type="submit" class="btn-review">Submit Review</button>
     </form>
-    <div class="comments-list" id="commentsList"></div>
+    <div class="comments-list" id="commentsList">
+        <p style="color:#aaa; text-align:center; padding: 10px;">🔄 Loading live reviews...</p>
+    </div>
 </div>
 
 <div id="successPopup" class="success-popup">
@@ -175,6 +177,39 @@
             document.getElementById("locationStatus").innerText = "✅ Live Location Tracked!";
             document.getElementById("locationStatus").style.color = "#27ae60";
         }); }
+    }
+
+    // 🔄 கூகுள் ஷீட்டில் இருந்து அனைத்து லைவ் கமெண்ட்ஸ் மற்றும் அட்மின் பதில்களை இழுத்து காட்டும் பகுதி
+    async function loadLiveReviews() {
+        const commentsList = document.getElementById('commentsList');
+        try {
+            let res = await fetch(`${BACKEND_API_URL}?action=GET_REVIEWS`);
+            let data = await res.json();
+            let reviews = data.reviews || [];
+
+            if (reviews.length === 0) {
+                commentsList.innerHTML = '<p style="color:#aaa; text-align:center; padding:10px;">No reviews yet. Be the first to share your experience!</p>';
+                return;
+            }
+
+            commentsList.innerHTML = reviews.reverse().map(r => {
+                const adminReplyHTML = r.adminReply ? `
+                    <div style="margin-top:8px; padding:8px; background:#e8f8f5; border-left:3px solid #2ecc71; font-size:0.85rem; color:#2c3e50; border-radius: 0 4px 4px 0;">
+                        <b>💬 Response from Shop Admin:</b> ${r.adminReply}
+                    </div>` : '';
+                
+                return `
+                    <div class="comment-box">
+                        <strong>${r.name} (${r.rating} ★)</strong>
+                        <p style="margin: 5px 0 0 0; color: #555;">${r.comment}</p>
+                        ${adminReplyHTML}
+                    </div>
+                `;
+            }).join('');
+
+        } catch (e) {
+            commentsList.innerHTML = '<p style="color:#e74c3c; text-align:center; padding:10px;">Failed to load live reviews from Google Sheet.</p>';
+        }
     }
 
     async function loadUserHistory() {
@@ -297,30 +332,22 @@
         setTimeout(loadUserHistory, 1500);
     });
 
-    // 💬 கஸ்டமர்கள் போடும் ரிவியூவை கூகுள் ஷீட்டுக்கு அனுப்பும் புதிய லைவ் பகுதி
     document.getElementById('reviewForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const reviewData = {
             sheetTarget: "Reviews",
             name: document.getElementById('revName').value,
-            rating: document.querySelector('input[name="rating"]:checked').value,
+            rating: document.querySelector('input[name="rating"]:checked') ? document.querySelector('input[name="rating"]:checked').value : "5",
             comment: document.getElementById('revComment').value
         };
 
-        // ஸ்கிரீனில் உடனே ரிவியூவை காட்டும் லாஜிக்
-        const commentsList = document.getElementById('commentsList');
-        const newComment = document.createElement('div');
-        newComment.className = 'comment-box';
-        newComment.innerHTML = `<strong>${reviewData.name} (${reviewData.rating} ★)</strong><p>${reviewData.comment}</p>`;
-        commentsList.insertBefore(newComment, commentsList.firstChild);
-
-        // கூகுள் ஷீட்டுக்கு தரவை தள்ளும் பகுதி
         try { 
             let response = await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(reviewData) });
             let result = await response.json();
             if(result.status === "success") {
                 alert("✅ Review Successfully Saved in Google Sheet!");
+                loadLiveReviews(); // புது ரிவியூவை உடனே ஷீட்டில் இருந்து ரீலோடு செய்யும்
             }
         } catch(err) {
             alert("Saved locally, server sync failed.");
@@ -329,7 +356,7 @@
         this.reset();
     });
 
-    window.onload = function() { getLocation(); toggleScanner(); };
+    window.onload = function() { getLocation(); toggleScanner(); loadLiveReviews(); };
     function closePopup() { document.getElementById('successPopup').style.display = 'none'; }
 </script>
 </body>
