@@ -72,7 +72,7 @@
         </div>
         <div class="form-group">
             <label>Mobile Number:</label>
-            <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="syncPhoneInputs('booking')">
+            <input type="tel" id="custPhone" required placeholder="Enter 10-digit mobile number" oninput="loadUserHistory()">
         </div>
         
         <div class="location-box">
@@ -127,13 +127,7 @@
 
 <div class="container">
     <h2>📋 Your Recent Order History</h2>
-    <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number below to view tracking history automatically</p>
-    
-    <div class="form-group" style="margin-top: 15px;">
-        <label style="color: #2980b9;">Track Status via Mobile Number:</label>
-        <input type="tel" id="trackCustPhone" placeholder="Enter 10-digit mobile number to track" oninput="syncPhoneInputs('tracking')">
-    </div>
-
+    <p style="font-size:0.85rem; color:#7f8c8d; text-align:center; margin-top:-5px;">Enter your Mobile Number above to view tracking history automatically</p>
     <div id="userHistoryContainer" style="margin-top: 15px;">
         <p style="color:#aaa; text-align:center;">Please enter your mobile number to view active logs.</p>
     </div>
@@ -162,8 +156,8 @@
 </div>
 
 <script>
-    // 🔗 SATHYA - Deployed Apps Script Web App URL-ai Line 151-la paste pannunum:
-    const BACKEND_API_URL ="https://script.google.com/macros/s/AKfycbwXfwzRhD7sPq8zOvM8d4vSnyJXvhFghmC37B3ceU-PHHv7I1dDwk-RLDFTT7JWZIhMuw/exec";
+    // 🔗 PASTE YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL LINK
+    const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbwXfwzRhD7sPq8zOvM8d4vSnyJXvhFghmC37B3ceU-PHHv7I1dDwk-RLDFTT7JWZIhMuw/exec";
 
     const inputs = {
         shirt: document.getElementById('rateShirt'), pants: document.getElementById('ratePants'),
@@ -183,67 +177,103 @@
         }); }
     }
 
-    function syncPhoneInputs(source) {
-        const pForm = document.getElementById('custPhone');
-        const pTrack = document.getElementById('trackCustPhone');
-        let activeNumber = "";
-        
-        if (source === 'booking') {
-            pTrack.value = pForm.value;
-            activeNumber = pForm.value.trim();
-        } else {
-            pForm.value = pTrack.value;
-            activeNumber = pTrack.value.trim();
-        }
-        loadUserHistory(activeNumber);
-    }
-
-    async function loadUserHistory(phoneInput) {
+    async function loadUserHistory() {
+        const phoneInput = document.getElementById('custPhone').value.trim();
         const historyContainer = document.getElementById('userHistoryContainer');
         
-        if (!phoneInput || phoneInput.length < 10) {
+        if (phoneInput.length < 10) {
             historyContainer.innerHTML = '<p style="color:#aaa; text-align:center;">Please enter a valid 10-digit mobile number.</p>';
             return;
         }
 
-        historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">⏳ Fetching live updates from Google Sheets...</p>';
-
-        try {
-            // Apps Script web app-ku mobile parameter-oda fetch seigirom
-            let res = await fetch(`${BACKEND_API_URL}?mobile=${phoneInput}`);
-            let userOrders = await res.json();
-
-            if (!userOrders || userOrders.length === 0) {
-                historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
-                return;
+        let userOrders = [];
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            let allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+            userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
+        } else {
+            try {
+                // கூகுள் ஷீட் வெப் ஆப்பிற்கு மொபைல் எண்ணை அனுப்பி லைவ் டேட்டாவை பெறுகிறோம்
+                let res = await fetch(`${BACKEND_API_URL}?mobile=${phoneInput}`);
+                userOrders = await res.json();
+            } catch(e) { 
+                // நெட்வொர்க் எர்ரர் வந்தால் லோக்கல் மெமரியில் இருந்து தேடும்
+                let allOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+                userOrders = allOrders.filter(o => o.phone.toString().trim() === phoneInput);
             }
+        }
 
-            historyContainer.innerHTML = userOrders.map(o => {
-                const isPending = o.status.toLowerCase().includes('pending');
-                const isCancelled = o.status.toLowerCase().includes('cancel');
-                let badgeClass = 'status-delivered';
-                if(isPending) badgeClass = 'status-pending';
-                if(isCancelled) badgeClass = 'status-cancelled';
+        if (!userOrders || userOrders.length === 0) {
+            historyContainer.innerHTML = '<p style="color:#7f8c8d; text-align:center;">No previous orders found.</p>';
+            return;
+        }
 
-                return `
-                    <div class="history-box" id="card-${o.orderId}">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                            <strong>🆔 Order ID: ${o.orderId}</strong>
-                            <div>
-                                <span class="badge-status ${badgeClass}">${o.status}</span>
-                            </div>
-                        </div>
-                        <div style="font-size:0.9rem; color:#555;">
-                            <span>📦 <b>Pick Date:</b> ${o.pickupDate}</span><br>
-                            <span>🚚 <b>Delivery Date:</b> ${o.deliveryDate}</span><br>
-                            <span style="font-size:0.8rem; color:#7f8c8d;">👔 <b>Clothes:</b> ${o.clothesDetails}</span>
+        historyContainer.innerHTML = userOrders.reverse().map(o => {
+            // கூகுள் ஷீட் அல்லது லோக்கல் மெமரியில் இருக்கும் வேல்யூக்களை சரியாக எடுக்கிறோம்
+            const orderID = o.orderId || o.id || "N/A";
+            const statusText = o.status || 'Pending';
+            const pickupDetails = o.pickupDate || o.pickup || "Not Specified";
+            const deliveryDetails = o.deliveryDate || o.delivery || "";
+            
+            const isPending = statusText.toLowerCase().includes('pending');
+            const isCancelled = statusText.toLowerCase().includes('cancel');
+            let badgeClass = 'status-delivered';
+            if(isPending) badgeClass = 'status-pending';
+            if(isCancelled) badgeClass = 'status-cancelled';
+
+            // ஷீட்டில் Admin Reply (Column L) இருந்தால் மட்டும் டிராக்கிங்கில் தனி நீல நிற பாக்ஸில் காட்டும்
+            const replyHTML = o.adminReply ? `<div style="margin-top:8px; padding:8px; background:#ebf5fb; border-left:3px solid #3498db; font-size:0.85rem; color:#2c3e50; border-radius: 0 4px 4px 0;"><b>💬 Admin Update:</b> ${o.adminReply}</div>` : '';
+
+            return `
+                <div class="history-box" id="card-${orderID}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <strong>🆔 ID: ${orderID}</strong>
+                        <div>
+                            <span class="badge-status ${badgeClass}">${statusText}</span>
+                            ${isPending ? `<button class="btn-cancel-order" onclick="cancelCustomerOrder('${orderID}')">❌ Cancel</button>` : ''}
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <div style="font-size:0.9rem; color:#555;">
+                        <span>📦 <b>Pick:</b> ${pickupDetails}</span><br>
+                        ${deliveryDetails ? `<span>🚚 <b>Delivery:</b> ${deliveryDetails}</span><br>` : ''}
+                        <span style="font-size:0.8rem; color:#7f8c8d;">👔 ${o.clothesDetails}</span>
+                        ${replyHTML}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
+    async function cancelCustomerOrder(orderId) {
+        if (!confirm("Do you want to cancel this order?")) return;
+        
+        // தற்காலிகமாக கார்டை மங்கலாக்குவது
+        const targetCard = document.getElementById(`card-${orderId}`);
+        if(targetCard) targetCard.style.opacity = '0.4';
+
+        if(BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+            localOrders = localOrders.map(o => (o.orderId === orderId || o.id.toString() === orderId.toString()) ? {...o, status: 'Cancelled ❌'} : o);
+            localStorage.setItem('ironOrders', JSON.stringify(localOrders));
+            loadUserHistory();
+            return;
+        }
+
+        try {
+            let res = await fetch(BACKEND_API_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "CANCEL_ORDER", sheetTarget: "Orders", id: orderId })
+            });
+            let data = await res.json();
+            if(data.result === "cancelled" || data.result === "success") {
+                alert("👍 Your order has been cancelled successfully!");
+                loadUserHistory();
+            } else {
+                alert("Cancellation request logged! Status will update shortly.");
+                loadUserHistory();
+            }
         } catch(e) { 
-            historyContainer.innerHTML = '<p style="color:#e74c3c; text-align:center;">⚠️ Connection Sync Error. Check your Web App URL Setup!</p>';
+            alert("Network sync failed! Please contact admin to cancel."); 
+            if(targetCard) targetCard.style.opacity = '1';
         }
     }
 
@@ -258,22 +288,58 @@
 
     document.getElementById('orderForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const activePhone = document.getElementById('custPhone').value.trim();
+        
+        // துணிகளின் கவுன்ட்டை அழகிய வடிவில் மாற்றுவது
+        let clothesArr = [];
+        if(parseInt(inputs.shirt.value) > 0) clothesArr.push(`Shirts(${inputs.shirt.value})`);
+        if(parseInt(inputs.pants.value) > 0) clothesArr.push(`Pants(${inputs.pants.value})`);
+        if(parseInt(inputs.cottonSaree.value) > 0) clothesArr.push(`CottonSaree(${inputs.cottonSaree.value})`);
+        if(parseInt(inputs.silkSaree.value) > 0) clothesArr.push(`SilkSaree(${inputs.silkSaree.value})`);
+        if(parseInt(inputs.churidar.value) > 0) clothesArr.push(`Churidar(${inputs.churidar.value})`);
+        if(parseInt(inputs.dhotiShirt.value) > 0) clothesArr.push(`DhotiShirt(${inputs.dhotiShirt.value})`);
+        if(parseInt(inputs.silkDhoti.value) > 0) clothesArr.push(`SilkDhoti(${inputs.silkDhoti.value})`);
+        if(parseInt(inputs.silkShirt.value) > 0) clothesArr.push(`SilkShirt(${inputs.silkShirt.value})`);
+        
+        const summaryClothes = clothesArr.length > 0 ? clothesArr.join(', ') : 'None';
+
         const order = {
-            id: Date.now(), name: document.getElementById('custName').value, phone: activePhone,
+            id: Date.now(), 
+            name: document.getElementById('custName').value, 
+            phone: document.getElementById('custPhone').value,
             location: document.getElementById("geoLink").value || "Not Provided",
             pickup: document.getElementById('pickupDate').value + " (" + document.getElementById('pickupTime').value + ")",
             delivery: document.getElementById('deliveryDate').value + " (" + document.getElementById('deliveryTime').value + ")",
-            clothesDetails: `Shirts(${inputs.shirt.value}), Pants(${inputs.pants.value}), CottonSaree(${inputs.cottonSaree.value})`, fastDelivery: inputs.fastDelivery.checked ? "Yes 🚀" : "No 🐢",
-            total: calculateTotal(), payment: document.getElementById('paymentMethod').value, status: 'Pending 🧺', sheetTarget: "Orders"
+            clothesDetails: summaryClothes, 
+            fastDelivery: inputs.fastDelivery.checked ? "Yes 🚀" : "No 🐢",
+            total: calculateTotal(), 
+            payment: document.getElementById('paymentMethod').value, 
+            status: 'Pending 🧺', 
+            sheetTarget: "Orders"
         };
 
-        try { 
-            await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); 
-        } catch(err){}
+        // முதலில் லோக்கல் மெமரியில் தற்காலிகமாக சேமிக்கிறோம்
+        let localOrders = JSON.parse(localStorage.getItem('ironOrders')) || [];
+        localOrders.push(order);
+        localStorage.setItem('ironOrders', JSON.stringify(localOrders));
+
+        if(!BACKEND_API_URL.includes("YOUR_DEPLOYED")) {
+            try { 
+                let response = await fetch(BACKEND_API_URL, { method: "POST", body: JSON.stringify(order) }); 
+                let resData = await response.json();
+                
+                // சர்வரில் இருந்து வெற்றிகரமாக ID வந்தால் அதை லோக்கலில் அப்டேட் செய்கிறோம்
+                if(resData.status === "success" && resData.orderId) {
+                    let updatedLocal = JSON.parse(localStorage.getItem('ironOrders')) || [];
+                    updatedLocal = updatedLocal.map(o => o.id === order.id ? {...o, orderId: resData.orderId} : o);
+                    localStorage.setItem('ironOrders', JSON.stringify(updatedLocal));
+                }
+            } catch(err){}
+        }
 
         document.getElementById('successPopup').style.display = 'flex';
-        this.reset(); calculateTotal(); loadUserHistory(activePhone);
+        this.reset(); 
+        calculateTotal(); 
+        setTimeout(loadUserHistory, 1000); // 1 செகண்ட் கழித்து டிராக்கிங்கை ரெஃப்ரெஷ் செய்கிறது
     });
 
     window.onload = function() { getLocation(); toggleScanner(); };
